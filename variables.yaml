@@ -1,10 +1,4 @@
 bot_token: "NjA1ZTMyN2MtMjhmZC00MTVkLWIwMmItZGRmZTcxNTQyODc3MTI4OWQ4YzUtYjM2_PF84_1eb65fdf-9643-417f-9974-ad72cae0e10f"
 bot_id: "Y2lzY29zcGFyazovL3VzL0FQUExJQ0FUSU9OLzZlMmMzYjU4LTY0NzEtNDE3OC04MThhLTljMzE1OGJjZTgwZg"
 bot_email: "board-provisioning@webex.bot"
-my_token: "<YOUR WEBEX API ACCESS TOKEN (CAN BE TEMPORARY FOR TESTING)>"
-org_id: "<ORGANIZATION ID YOU ARE ADMIN OF>"
-my_id: "<YOUR WEBEX ID>"
 bot_name: "BoardProvisionBot"
-allowed_users:
-  - "<EMAIL1 (MUST BE IN YOUR ORGANIZATION)>"
-  - "<EMAIL2>"

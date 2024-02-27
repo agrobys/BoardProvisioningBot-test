@@ -11,8 +11,15 @@ class Admin:
         self.my_token = my_token
         self.org_id = org_id
         self.api = WebexTeamsAPI(access_token=self.my_token)
-        self.my_id = self.api.people.me().id
         self.headers = self.get_headers()
+        try:
+            self.my_id = self.api.people.me().id
+        except ApiError:
+            self.my_id = ""
+
+    def update_token(self, token):
+        self.my_token = token
+        self.my_id = self.api.people.me().id
 
     # Converts email to User ID. Needed for allowed users list. Returns empty string if email not found.
     def get_id_from_email(self, email) -> str:
@@ -22,6 +29,16 @@ class Admin:
             for user in users:
                 user_id = user.id
             return user_id
+        except ApiError:
+            return ""
+
+    def get_email_from_id(self, id) -> str:
+        try:
+            users = self.api.people.list(id=id)
+            email = ""
+            for user in users:
+                email = user.emails[0]
+            return email
         except ApiError:
             return ""
 
@@ -38,9 +55,12 @@ class Admin:
     def get_workspace_id(self, workspace_name) -> str:
         workspace_id = ""
         # Get ID for specified workspace name
-        response = requests.get(
-            url=f'https://webexapis.com/v1/workspaces?orgId={self.org_id}&displayName={workspace_name}',
-            headers=self.headers)
+        try:
+            response = requests.get(
+                url=f'https://webexapis.com/v1/workspaces?orgId={self.org_id}&displayName={workspace_name}',
+                headers=self.headers)
+        except ApiError:
+            return ""
         # print(response.json())
         for workspace in response.json()["items"]:
             workspace_id = workspace["id"]
@@ -51,8 +71,11 @@ class Admin:
                 "displayName": workspace_name,
                 "orgId": self.org_id
             }
-            response = requests.post(url="https://webexapis.com/v1/workspaces",
+            try:
+                response = requests.post(url="https://webexapis.com/v1/workspaces",
                                      data=json.dumps(payload), headers=self.headers)
+            except ApiError:
+                return ""
             # print(response.content)
             workspace_id = json.loads(response.content)["id"]
         return workspace_id
@@ -62,15 +85,27 @@ class Admin:
     def get_activation_code(self, workspace_name, model=None) -> str:
         # Get ID for specified workspace name
         workspace_id = self.get_workspace_id(workspace_name)
+        if workspace_id == "":
+            return ""
         payload = {
             "workspaceId": workspace_id
         }
         if model:
             payload["model"] = model
         # Create activation code
-        response = requests.post(url="https://webexapis.com/v1/devices/activationCode?orgId=" + self.org_id,
+        try:
+            response = requests.post(url="https://webexapis.com/v1/devices/activationCode?orgId=" + self.org_id,
                                  data=json.dumps(payload), headers=self.headers)
+        except ApiError:
+            return ""
         print(json.loads(response.content))
         activation_code = json.loads(response.content)["code"]
         return activation_code
+
+    def save(self):
+        data = {
+            "my_token": self.my_token,
+            "org_id": self.org_id,
+        }
+        return data
 

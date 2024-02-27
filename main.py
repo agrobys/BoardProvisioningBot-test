@@ -1,5 +1,5 @@
 from __future__ import print_function  # Needed if you want to have console output using Flask
-import yaml
+import yaml, json
 from flask import Flask, request
 from bot import Bot
 
@@ -42,15 +42,58 @@ def card():
     attachment_id = payload["data"]["id"]
 
     # Handle the message
-    bot.get_activation_code(attachment_id, room_id, person_id)
+    bot.handle_card(attachment_id, room_id, person_id)
+
+    return 'success'
+
+
+@app.route("/added", methods=['POST'])
+def added():
+    payload = request.get_json()
+    person_id = payload["data"]["personId"]
+
+    room_id = payload["data"]["roomId"]
+
+    # Handle the message
+    bot.handle_added(room_id)
+
+    return 'success'
+
+
+@app.route("/removed", methods=['POST'])
+def removed():
+    payload = request.get_json()
+    person_id = payload["data"]["personId"]
+
+    room_id = payload["data"]["roomId"]
+
+    # Handle the message
+    bot.handle_removed(room_id)
 
     return 'success'
 
 
 if __name__ == "__main__":
 
-    bot = Bot(variables["bot_name"], variables["bot_token"], variables["bot_email"], variables["allowed_users"], variables["my_token"], variables["org_id"])
+    try:
+        with open("bot_data.json") as file:
+            data = json.load(file)
+    except:
+        data = {
+            "bot_name": variables["bot_name"],
+            "bot_token": variables["bot_token"],
+            "bot_email": variables["bot_email"],
+            "orgs": [],
+            "org_admin": {},
+            "org_allowed_users": {},
+            "room_to_org": {},
+            "org_id_to_email": {}
+        }
+
+    bot = Bot(data)
     print("Starting bot")
     bot.startup()
-
-    app.run(port=5042)
+    try:
+        app.run(port=5042)
+    finally:
+        bot.teardown()
