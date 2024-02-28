@@ -168,7 +168,7 @@ class Bot:
     def add_allowed_user(self, org_id, email):
         admin = self.org_admin[org_id]
         user_id = admin.get_id_from_email(email)
-        if user_id != "":
+        if user_id != "" and user_id not in self.org_allowed_users[org_id]:
             self.org_allowed_users[org_id].append(user_id)
         return user_id
 
@@ -229,6 +229,10 @@ class Bot:
     # Is called when bot is mentioned. Checks for commands (if no special command is detected, it will send the
     # adaptive card)
     def handle_command(self, message, room_id, actor_id) -> None:
+        # Ignore @All mentions
+        if message.split()[0] == "All":
+            return
+        # Make sure bot is initialized for this room
         try:
             org_id = self.room_to_org[room_id]
             admin = self.org_admin[org_id]
@@ -256,7 +260,8 @@ class Bot:
                                                    f"see the card, mention the bot to receive it. If the bot is "
                                                    f"already initialized, mention the bot to receive a card to fill "
                                                    f"out to get an activation code.\n\nOther commands include:\n- "
-                                                   f"add [email]: add an authorized user to your organization\n- "
+                                                   f"add [email]: add an authorized user to your organization; add "
+                                                   f"several at once separated with a space\n-"
                                                    f"token [token]: update the access token\n- reinit: reinitialize "
                                                    f"the bot (if you would like to change the organization for this "
                                                    f"room).\n\nIf you require further assistance, please contact me "
@@ -265,12 +270,13 @@ class Bot:
         # Adds an allowed user on "add" command
         elif len(command) > 1 and command[0] == "add" and actor_id in self.org_allowed_users[org_id]:
             print(f"User {self.org_id_to_email[org_id][actor_id]} allowed.")
-            user_id = self.add_allowed_user(org_id, command[1])
+            for email in command[1:]:
+                user_id = self.add_allowed_user(org_id, email)
             # Empty user_id means provided email was not found
-            if user_id == "":
-                self.api.messages.create(room_id, text="Please provide a valid email as a second argument. Thank you")
-            else:
-                self.api.messages.create(room_id, text=f"User {command[1]} added successfully.")
+                if user_id == "":
+                    self.api.messages.create(room_id, text="Please provide a valid email as a second argument. Thank you")
+                else:
+                    self.api.messages.create(room_id, text=f"User {command[1]} added successfully.")
 
         # Sends card if no special command is detected
         else:
