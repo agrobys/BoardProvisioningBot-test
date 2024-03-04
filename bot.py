@@ -1,6 +1,6 @@
 from __future__ import print_function  # Needed if you want to have console output using Flask
 from pyngrok import ngrok
-from webexteamssdk import WebexTeamsAPI
+from webexteamssdk import WebexTeamsAPI, RateLimitWarning
 from webexteamssdk.models.cards import AdaptiveCard, TextBlock, Text
 from webexteamssdk.models.cards.actions import Submit
 from admin import Admin
@@ -61,11 +61,16 @@ class Bot:
 
         self.orgs = data["orgs"]
         self.org_admin = {}
-        for org in data["org_admin"].keys():
-            admin = Admin(data["org_admin"][org]["my_token"], data["org_admin"][org]["org_id"])
-            self.org_admin[org] = admin
-        self.org_allowed_users = data["org_allowed_users"]
         self.room_to_org = data["room_to_org"]
+        for org in data["org_admin"].keys():
+            admin = create_admin(data["org_admin"][org]["my_token"], data["org_admin"][org]["org_id"])
+            if admin.my_id == "":
+                for room in self.room_to_org.keys():
+                    if self.room_to_org[room] == org:
+                        self.reinit(room)
+            else:
+                self.org_admin[org] = admin
+        self.org_allowed_users = data["org_allowed_users"]
         self.org_id_to_email = data["org_id_to_email"]
 
     # Creates 2 webhooks: Bot mentioned and adaptive card submitted
@@ -109,8 +114,10 @@ class Bot:
         )
 
     def delete_webhooks(self) -> None:
+        print("Deleting webhooks")
         for webhook in self.webhooks:
             self.api.webhooks.delete(webhook.id)
+            print("Webhook deleted")
 
     def start_tunnel(self) -> None:
         self.https_tunnel = ngrok.connect(bind_tls=True, addr="http://localhost:5042")
@@ -119,6 +126,9 @@ class Bot:
         ngrok.disconnect(self.https_tunnel.api_url)
 
     def startup(self) -> None:
+        webhooks = self.api.webhooks.list()
+        for webhook in webhooks:
+            self.webhooks.append(webhook)
         self.delete_webhooks()
         self.start_tunnel()
         self.create_webhooks()
@@ -142,13 +152,22 @@ class Bot:
 
     def teardown(self) -> None:
         self.save()
-        self.delete_webhooks()
+        # self.delete_webhooks()
         self.stop_tunnel()
+
+    def reinit(self, room_id):
+        self.api.messages.create(roomId=room_id, text="Access token expired or not valid. Reinitializing...")
+        self.api.messages.create(room_id, text="Please initialize", attachments=[self.init_card])
 
     def init_org(self, org_id, access_token, room_id, user_id):
         try:
             admin = self.org_admin[org_id]
             print("Org exists")
+            if admin.my_id == "":
+                admin_id = admin.update_token(access_token)
+                if admin_id == "":
+                    self.reinit(room_id)
+                    return None
             if user_id not in self.org_allowed_users[org_id]:
                 print("Adding user to allowed")
                 self.org_allowed_users[org_id].append(user_id)
@@ -161,6 +180,7 @@ class Bot:
         email = admin.get_email_from_id(user_id)
         self.org_id_to_email[org_id][user_id] = email
         self.room_to_org[room_id] = org_id
+        return admin
 
     def remove_room_from_org(self, room_id):
         del self.room_to_org[room_id]
@@ -196,8 +216,9 @@ class Bot:
             try:
                 org_id = card_input.inputs["org_id"]
                 access_token = card_input.inputs["access_token"]
-                self.init_org(org_id, access_token, room_id, actor_id)
-                self.api.messages.create(room_id, text="Initialization success")
+                admin = self.init_org(org_id, access_token, room_id, actor_id)
+                if admin:
+                    self.api.messages.create(room_id, text="Initialization success")
             except KeyError:
                 self.api.messages.create(room_id, text="Please initialize", attachments=[self.init_card])
                 return
@@ -248,8 +269,11 @@ class Bot:
         print(f"Command: {' '.join(command)}")
 
         if len(command) > 1 and command[0] == "token" and actor_id in self.org_allowed_users[org_id]:
-            admin.update_token(command[1])
-            self.api.messages.create(room_id, text=f"Access token successfully updated to: {command[1]}")
+            admin_id = admin.update_token(command[1])
+            if admin_id == "":
+                self.api.messages.create(room_id, text=f"Token invalid. Please double check and try again.")
+            else:
+                self.api.messages.create(room_id, text=f"Access token successfully updated.")
 
         elif len(command) > 0 and command[0] == "reinit" and actor_id in self.org_allowed_users[org_id]:
             self.remove_room_from_org(room_id)
@@ -261,7 +285,7 @@ class Bot:
                                                    f"already initialized, mention the bot to receive a card to fill "
                                                    f"out to get an activation code.\n\nOther commands include:\n- "
                                                    f"add [email]: add an authorized user to your organization; add "
-                                                   f"several at once separated with a space\n-"
+                                                   f"several at once separated with a space\n- "
                                                    f"token [token]: update the access token\n- reinit: reinitialize "
                                                    f"the bot (if you would like to change the organization for this "
                                                    f"room).\n\nIf you require further assistance, please contact me "
@@ -274,7 +298,7 @@ class Bot:
                 user_id = self.add_allowed_user(org_id, email)
             # Empty user_id means provided email was not found
                 if user_id == "":
-                    self.api.messages.create(room_id, text="Please provide a valid email as a second argument. Thank you")
+                    self.api.messages.create(room_id, text="Please provide a valid email as a second. If the email was valid, check if you need to update your access token. Thank you")
                 else:
                     self.api.messages.create(room_id, text=f"User {command[1]} added successfully.")
 

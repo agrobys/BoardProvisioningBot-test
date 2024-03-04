@@ -19,7 +19,11 @@ class Admin:
 
     def update_token(self, token):
         self.my_token = token
-        self.my_id = self.api.people.me().id
+        try:
+            self.my_id = self.api.people.me().id
+        except ApiError:
+            self.my_id = ""
+        return self.my_id
 
     # Converts email to User ID. Needed for allowed users list. Returns empty string if email not found.
     def get_id_from_email(self, email) -> str:

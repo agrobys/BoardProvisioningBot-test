@@ -20,7 +20,7 @@ Other commands:
 
 - help: Print all available commands
 - add [email]: Add an authorized user to your organization. Provided email must be in your organization. You can provide several at once separated by a space.
-- token [token]: Update your access token. If you're using a temporary token, it is only valid for 48hrs.
-- reinit: Reinitialize the bot. Do this if you wish to use it for a different organization in this room.
+- token [token]: Update your access token. If you're using a temporary token, it is only valid for 48hrs. If you do not wish to expose your access token to everyone in a message, use the 'reinit' command instead.
+- reinit: Reinitialize the bot. Do this if you wish to use it for a different organization in this room or if you need to update your token.
 
 >If you have any questions, contact me at agrobys@cisco.com. 
