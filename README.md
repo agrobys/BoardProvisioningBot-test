@@ -5,7 +5,7 @@
 How to start the bot:
 
 - Install ngrok and necessary packages.
-- If you use my bot with my variables specified in the variables.yaml file, please let me know before you run it. Otherwise, you can create your own bot at https://developer.webex.com/my-apps/new/bot and paste its token, id, email, and name in the .yaml file.
+- To get the token for my bot, send me a message at agrobys@cisco.com. Otherwise, you can create your own bot at https://developer.webex.com/my-apps/new/bot and paste its token, id, email, and name in the .yaml file.
 - Run app.py
 
 How to interact with the bot:
@@ -22,5 +22,10 @@ Other commands:
 - add [email]: Add an authorized user to your organization. Provided email must be in your organization. You can provide several at once separated by a space.
 - token [token]: Update your access token. If you're using a temporary token, it is only valid for 48hrs. If you do not wish to expose your access token to everyone in a message, use the 'reinit' command instead.
 - reinit: Reinitialize the bot. Do this if you wish to use it for a different organization in this room or if you need to update your token.
+
+Be aware that:
+
+- Anyone who has the admin's access token can perform any API operations on your organization's Control Hub. Be careful pasting it in the chat.
+- 
 
 >If you have any questions, contact me at agrobys@cisco.com. 
