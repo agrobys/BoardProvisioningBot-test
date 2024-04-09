@@ -2,6 +2,8 @@
 
 >This code is NOT written for production. Please use for testing purposes only.
 
+Credits go to @schachem for his echo bot which I used as a sceleton for this bot! Find it at: https://github.com/schachem/EchoBot
+
 How to start the bot:
 
 - Install ngrok and necessary packages.
@@ -26,6 +28,5 @@ Other commands:
 Be aware that:
 
 - Anyone who has the admin's access token can perform any API operations on your organization's Control Hub. Be careful pasting it in the chat.
-- 
 
 >If you have any questions, contact me at agrobys@cisco.com. 
